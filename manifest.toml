@@ -1,0 +1,28 @@
+name = "dymint"
+
+[defaults]
+builder = "exec:go"
+runner = "local:exec"
+
+[builders."docker:go"]
+enabled = true
+
+[builders."exec:go"]
+enabled = true
+
+[runners."local:docker"]
+enabled = true
+
+[runners."local:exec"]
+enabled = true
+
+[runners."cluster:swarm"]
+enabled = true
+
+[runners."cluster:k8s"]
+enabled = true
+
+# seq 0
+[[testcases]]
+name = "test"
+instances = { min = 2, max = 500, default = 100 }
