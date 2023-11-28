@@ -25,7 +25,7 @@ enabled = true
 # seq 0
 [[testcases]]
 name = "test"
-instances = { min = 2, max = 500, default = 100 }
+instances = { min = 1, max = 500, default = 100 }
   [testcases.params]
   # params with type "duration" must be parseable by time.ParseDuration, e.g. 2m or 30s
   # params with type "size" must be parseable by https://godoc.org/github.com/dustin/go-humanize#ParseBytes, e.g. "1kb"

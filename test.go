@@ -8,10 +8,13 @@ import (
 	"time"
 
 	tcfg "github.com/tendermint/tendermint/config"
-	"github.com/tendermint/tendermint/crypto/ed25519"
 	"github.com/tendermint/tendermint/libs/log"
+	tmos "github.com/tendermint/tendermint/libs/os"
 	tmrand "github.com/tendermint/tendermint/libs/rand"
+	tmnode "github.com/tendermint/tendermint/node"
+	"github.com/tendermint/tendermint/p2p"
 	tmp2p "github.com/tendermint/tendermint/p2p"
+	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
 	"github.com/tendermint/tendermint/types"
 	tmtime "github.com/tendermint/tendermint/types/time"
@@ -24,7 +27,66 @@ import (
 	"github.com/dymensionxyz/dymint/config"
 	"github.com/dymensionxyz/dymint/conv"
 	"github.com/dymensionxyz/dymint/node"
+	"github.com/dymensionxyz/dymint/rpc"
 )
+
+// InitFilesWithConfig initialises a fresh Dymint instance.
+func InitFilesWithConfig(runenv *runtime.RunEnv, config *tcfg.Config) error {
+	// private validator
+
+	config.RootDir = "/"
+	dir, _ := os.Getwd()
+	os.Mkdir("config", os.ModePerm)
+	os.Mkdir("data", os.ModePerm)
+	runenv.RecordMessage("Config %s %s %s", dir, config.PrivValidatorKeyFile(), config.GenesisFile())
+
+	privValKeyFile := config.PrivValidatorKeyFile()
+	runenv.RecordMessage("Config %s", config.PrivValidatorStateFile())
+
+	privValStateFile := config.PrivValidatorStateFile()
+	var pv *privval.FilePV
+
+	pv = privval.GenFilePV("/"+privValKeyFile, "/"+privValStateFile)
+	pv.Save()
+
+	runenv.RecordMessage("pv %s", pv.Key.Address)
+
+	nodeKeyFile := config.NodeKeyFile()
+	if tmos.FileExists(nodeKeyFile) {
+	} else {
+		if _, err := p2p.LoadOrGenNodeKey(nodeKeyFile); err != nil {
+			return err
+		}
+	}
+
+	// genesis file
+	genFile := config.GenesisFile()
+	if tmos.FileExists(genFile) {
+		//logger.Info("Found genesis file", "path", genFile)
+	} else {
+		genDoc := types.GenesisDoc{
+			ChainID:         fmt.Sprintf("test-chain-%v", tmrand.Str(6)),
+			GenesisTime:     tmtime.Now(),
+			ConsensusParams: types.DefaultConsensusParams(),
+		}
+		pubKey, err := pv.GetPubKey()
+		if err != nil {
+			return fmt.Errorf("can't get pubkey: %w", err)
+		}
+		genDoc.Validators = []types.GenesisValidator{{
+			Address: pubKey.Address(),
+			PubKey:  pubKey,
+			Power:   10,
+		}}
+
+		if err := genDoc.SaveAs(genFile); err != nil {
+			return err
+		}
+		//logger.Info("Generated genesis file", "path", genFile)
+	}
+
+	return nil
+}
 
 // setupNetwork instructs the sidecar (if enabled) to setup the network for this
 // test case.
@@ -71,67 +133,66 @@ func setupNetwork(ctx context.Context, runenv *runtime.RunEnv, netclient *networ
 
 func createDymintNode(runenv *runtime.RunEnv, config *config.NodeConfig, tmConfig *tcfg.Config) (*node.Node, error) {
 
-	/*nodeKey, err := tmp2p.LoadOrGenNodeKey(tmConfig.NodeKeyFile())
+	InitFilesWithConfig(runenv, tmConfig)
 
+	nodeKey, err := tmp2p.LoadOrGenNodeKey(tmConfig.NodeKeyFile())
 	if err != nil {
 		return nil, err
-	}*/
-	privKey := ed25519.GenPrivKey()
-	nodeKey := &tmp2p.NodeKey{
-		PrivKey: privKey,
 	}
-
-	runenv.RecordMessage("nodekey loaded")
-
-	runenv.RecordMessage("privvalkey loaded")
-
-	//genDocProvider := tmnode.DefaultGenesisDocProviderFunc(tmConfig)
+	privValKey, err := tmp2p.LoadOrGenNodeKey(tmConfig.PrivValidatorKeyFile())
+	if err != nil {
+		return nil, err
+	}
+	genDocProvider := tmnode.DefaultGenesisDocProviderFunc(tmConfig)
 	p2pKey, err := conv.GetNodeKey(nodeKey)
 	if err != nil {
 		return nil, err
 	}
-
-	//genesis, err := genDocProvider()
-	//runenv.RecordMessage("Genesis file %s", tmConfig.GenesisFile())
-	/*genesis, err := types.GenesisDocFromFile(tmConfig.GenesisFile())
+	signingKey, err := conv.GetNodeKey(privValKey)
 	if err != nil {
 		return nil, err
-	}*/
-
-	genDoc := types.GenesisDoc{
-		ChainID:         fmt.Sprintf("test-chain-%v", tmrand.Str(6)),
-		GenesisTime:     tmtime.Now(),
-		ConsensusParams: types.DefaultConsensusParams(),
 	}
-	pubKey := privKey.PubKey()
-	genDoc.Validators = []types.GenesisValidator{{
-		Address: pubKey.Address(),
-		PubKey:  pubKey,
-		Power:   10,
-	}}
+	genesis, err := genDocProvider()
+	if err != nil {
+		return nil, err
+	}
 	err = conv.GetNodeConfig(config, tmConfig)
 	if err != nil {
 		return nil, err
 	}
+	runenv.RecordMessage("starting node with ABCI dymint in-process", "conf", config)
+
 	//logger.Info("starting node with ABCI dymint in-process", "conf", config)
+
+	config.BatchSubmitMaxTime = time.Hour
+	config.BlockBatchMaxSizeBytes = 50000000
 
 	tmConfig.ProxyApp = "kvstore"
 	tmConfig.LogLevel = "debug"
+	//tmConfig.DBPath = "/"
+	config.Aggregator = true
+	//runenv.RecordMessage("Pub key %s", privKey2.PubKey().Address())
 
+	//runenv.RecordMessage("Genesis doc %s", genDoc.ChainID, genDoc.InitialHeight, genDoc.Validators[0].PubKey.Address())
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 	dymintNode, err := node.NewNode(
 		context.Background(),
 		*config,
 		p2pKey,
-		p2pKey,
+		signingKey,
 		proxy.DefaultClientCreator(tmConfig.ProxyApp, tmConfig.ABCI, tmConfig.DBDir()),
-		&genDoc,
+		genesis,
 		logger,
 	)
 	if err != nil {
 		return nil, err
 	}
 
+	server := rpc.NewServer(dymintNode, tmConfig.RPC, logger)
+	err = server.Start()
+	if err != nil {
+		return nil, err
+	}
 	return dymintNode, nil
 }
 
@@ -199,6 +260,6 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 		return err
 	}
 	//peerSubscriber := NewPeerSubscriber(ctx, runenv, client, runenv.TestInstanceCount)
-	time.Sleep(30 * time.Second)
+	time.Sleep(120 * time.Second)
 	return nil
 }
