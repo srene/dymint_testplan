@@ -69,7 +69,7 @@ func setupNetwork(ctx context.Context, runenv *runtime.RunEnv, netclient *networ
 	return config, nil
 }
 
-func startDymintNode(runenv *runtime.RunEnv, config *config.NodeConfig, tmConfig *tcfg.Config) (*node.Node, error) {
+func createDymintNode(runenv *runtime.RunEnv, config *config.NodeConfig, tmConfig *tcfg.Config) (*node.Node, error) {
 
 	/*nodeKey, err := tmp2p.LoadOrGenNodeKey(tmConfig.NodeKeyFile())
 
@@ -116,6 +116,9 @@ func startDymintNode(runenv *runtime.RunEnv, config *config.NodeConfig, tmConfig
 	//logger.Info("starting node with ABCI dymint in-process", "conf", config)
 
 	tmConfig.ProxyApp = "kvstore"
+	tmConfig.LogLevel = "debug"
+
+	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 	dymintNode, err := node.NewNode(
 		context.Background(),
 		*config,
@@ -123,7 +126,7 @@ func startDymintNode(runenv *runtime.RunEnv, config *config.NodeConfig, tmConfig
 		p2pKey,
 		proxy.DefaultClientCreator(tmConfig.ProxyApp, tmConfig.ABCI, tmConfig.DBDir()),
 		&genDoc,
-		log.NewTMLogger(log.NewSyncWriter(os.Stdout)),
+		logger,
 	)
 	if err != nil {
 		return nil, err
@@ -164,35 +167,38 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 		return err
 	}*/
 
-	tmconfig := tcfg.DefaultConfig()
-	dymconfig := config.DefaultNodeConfig
-
-	node, err := startDymintNode(runenv, &dymconfig, tmconfig)
-	if err != nil {
-		return err
-	}
-	runenv.RecordMessage("Dymint node started %s", node)
 	//peers := tgsync.NewTopic("nodes", &peer.AddrInfo{})
 
 	// Get sequence number within a node type (eg honest-1, honest-2, etc)
 	// signal entry in the 'enrolled' state, and obtain a sequence number.
-	//seq, err := client.Publish(ctx, peers, host.InfoFromHost(h))
+	/*seq, err := client.Publish(ctx, peers, host.InfoFromHost(h))
 
 	if err != nil {
 		return fmt.Errorf("failed to write peer subtree in sync service: %w", err)
-	}
+	}*/
 
 	runenv.RecordMessage("before netclient.MustConfigureNetwork")
 
-	_, err = setupNetwork(ctx, runenv, netclient, params.netParams.latency, params.netParams.latencyMax, params.netParams.bandwidthMB)
+	_, err := setupNetwork(ctx, runenv, netclient, params.netParams.latency, params.netParams.latencyMax, params.netParams.bandwidthMB)
 	if err != nil {
 		return fmt.Errorf("Failed to set up network: %w", err)
 	}
 
 	netclient.MustWaitNetworkInitialized(ctx)
 	//runenv.RecordMessage("my sequence ID: %d %s", seq, h.ID())
+	tmconfig := tcfg.DefaultConfig()
+	dymconfig := config.DefaultNodeConfig
 
+	node, err := createDymintNode(runenv, &dymconfig, tmconfig)
+	if err != nil {
+		return err
+	}
+
+	runenv.RecordMessage("initialization: dymint node created")
+	if err := node.Start(); err != nil {
+		return err
+	}
 	//peerSubscriber := NewPeerSubscriber(ctx, runenv, client, runenv.TestInstanceCount)
-
+	time.Sleep(30 * time.Second)
 	return nil
 }
