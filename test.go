@@ -11,6 +11,7 @@ import (
 	"github.com/testground/sdk-go/run"
 	"github.com/testground/sdk-go/runtime"
 	tgsync "github.com/testground/sdk-go/sync"
+	"golang.org/x/sync/errgroup"
 )
 
 type IP struct {
@@ -116,21 +117,17 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 
 	ip, err = netclient.GetDataNetworkIP()
 
-	node, err := createDymintNode(ctx, runenv, client, aggregator, ip)
+	dn, err := createDymintNode(ctx, runenv, seq, client, aggregator, ip)
 	if err != nil {
 		return err
 	}
+	runenv.RecordMessage("Node started %d", dn.seq)
+	errgrp, ctx := errgroup.WithContext(ctx)
 
-	runenv.RecordMessage("initialization: dymint node created")
-	if err := node.Start(); err != nil {
-		return err
-	}
-	runenv.RecordMessage("Node started at %s", node.P2P.Addrs())
-	if err != nil {
-		return err
-	}
+	errgrp.Go(func() (err error) {
+		dn.Run(runTime)
+		return
+	})
+	return errgrp.Wait()
 
-	//peerSubscriber := NewPeerSubscriber(ctx, runenv, client, runenv.TestInstanceCount)
-	time.Sleep(30 * time.Second)
-	return nil
 }

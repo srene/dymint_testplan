@@ -29,8 +29,19 @@ import (
 	tgsync "github.com/testground/sdk-go/sync"
 )
 
+type DymintNode struct {
+	tmConfig   *tcfg.Config
+	config     *config.NodeConfig
+	ctx        context.Context
+	shutdown   func()
+	aggregator bool
+	seq        int64
+	runenv     *runtime.RunEnv
+	node       *node.Node
+}
+
 // InitFilesWithConfig initialises a fresh Dymint instance.
-func InitFilesWithConfig(ctx context.Context, runenv *runtime.RunEnv, config *tcfg.Config, client *tgsync.DefaultClient, aggregator bool) error {
+func initFilesWithConfig(ctx context.Context, runenv *runtime.RunEnv, config *tcfg.Config, client *tgsync.DefaultClient, aggregator bool) error {
 	// private validator
 
 	config.RootDir = "/"
@@ -101,12 +112,12 @@ func InitFilesWithConfig(ctx context.Context, runenv *runtime.RunEnv, config *tc
 	return nil
 }
 
-func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, client *tgsync.DefaultClient, aggregator bool, ip net.IP) (*node.Node, error) {
+func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, client *tgsync.DefaultClient, aggregator bool, ip net.IP) (*DymintNode, error) {
 
 	tmConfig := tcfg.DefaultConfig()
 	config := &config.DefaultNodeConfig
 
-	InitFilesWithConfig(ctx, runenv, tmConfig, client, aggregator)
+	initFilesWithConfig(ctx, runenv, tmConfig, client, aggregator)
 
 	nodeKey, err := tmp2p.LoadOrGenNodeKey(tmConfig.NodeKeyFile())
 	if err != nil {
@@ -179,7 +190,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, client *tgsyn
 	runenv.RecordMessage("starting node with ABCI dymint with ip %s", ip)
 
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
-	dymintNode, err := node.NewNode(
+	node, err := node.NewNode(
 		context.Background(),
 		*config,
 		p2pKey,
@@ -194,5 +205,30 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, client *tgsyn
 	if err != nil {
 		return nil, err
 	}*/
-	return dymintNode, nil
+	n := &DymintNode{
+		tmConfig:   tmConfig,
+		config:     config,
+		node:       node,
+		ctx:        ctx,
+		aggregator: aggregator,
+		seq:        seq,
+		runenv:     runenv,
+	}
+
+	return n, nil
+}
+
+func (dn *DymintNode) Run(runtime time.Duration) error {
+	defer func() {
+		dn.runenv.RecordMessage("Shutting down")
+		dn.node.Stop()
+	}()
+	dn.node.Start()
+	select {
+	case <-time.After(runtime):
+	case <-dn.ctx.Done():
+		return dn.ctx.Err()
+	}
+
+	return nil
 }
