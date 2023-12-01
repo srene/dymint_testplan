@@ -22,6 +22,11 @@ type HeartbeatParams struct {
 	Interval     time.Duration
 }
 
+type GossipCacheParams struct {
+	HistorySize       int
+	HistoryAdvertised int
+}
+
 type NetworkParams struct {
 	latency     int
 	latencyMax  int
@@ -41,12 +46,12 @@ type OverlayParams struct {
 }
 
 type testParams struct {
-	heartbeat HeartbeatParams
-	setup     time.Duration
-	warmup    time.Duration
-	runtime   time.Duration
-	cooldown  time.Duration
-
+	heartbeat         HeartbeatParams
+	setup             time.Duration
+	warmup            time.Duration
+	runtime           time.Duration
+	cooldown          time.Duration
+	gossipcache       GossipCacheParams
 	publisher         bool
 	floodPublishing   bool
 	fullTraces        bool
@@ -120,6 +125,10 @@ func parseParams(runenv *runtime.RunEnv) testParams {
 		heartbeat: HeartbeatParams{
 			InitialDelay: durationParam(runenv, "t_heartbeat_initial_delay"),
 			Interval:     durationParam(runenv, "t_heartbeat"),
+		},
+		gossipcache: GossipCacheParams{
+			HistorySize:       runenv.IntParam("t_gossip_size"),
+			HistoryAdvertised: runenv.IntParam("t_gossip_adv"),
 		},
 		setup:           durationParam(runenv, "t_setup"),
 		warmup:          durationParam(runenv, "t_warm"),

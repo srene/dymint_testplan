@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"os"
 	"time"
 
 	"github.com/testground/sdk-go/network"
@@ -117,15 +118,45 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 
 	ip, err = netclient.GetDataNetworkIP()
 
-	dn, err := createDymintNode(ctx, runenv, seq, client, aggregator, ip)
+	//tracerOut := fmt.Sprintf("%s%ctracer-output-%d", runenv.TestOutputsPath, os.PathSeparator, seq)
+	//tracer, err := NewTestTracer(tracerOut, string(seq), true)
+
+	tracerOut := fmt.Sprintf("%s%ctracer-output-%d", runenv.TestOutputsPath, os.PathSeparator, seq)
+	tracer, err := NewTestTracer(tracerOut, fmt.Sprint(seq), true)
+
+	nodeFailing := false
+
+	if seq == int64(params.node_failing) {
+		nodeFailing = true
+		runenv.RecordMessage("Enabling failure for node %d !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", seq)
+	}
+
+	cfg := NodeConfig{
+		Publisher:               aggregator,
+		FloodPublishing:         false,
+		OverlayParams:           params.overlayParams,
+		FailureDuration:         params.node_failure_time,
+		Failure:                 nodeFailing,
+		Tracer:                  tracer,
+		Seq:                     seq,
+		Warmup:                  params.warmup,
+		Cooldown:                params.cooldown,
+		Heartbeat:               params.heartbeat,
+		ValidateQueueSize:       params.validateQueueSize,
+		OutboundQueueSize:       params.outboundQueueSize,
+		OpportunisticGraftTicks: params.opportunisticGraftTicks,
+	}
+
+	dn, err := createDymintNode(ctx, runenv, seq, client, aggregator, ip, cfg)
 	if err != nil {
 		return err
 	}
+
 	runenv.RecordMessage("Node started %d", dn.seq)
 	errgrp, ctx := errgroup.WithContext(ctx)
 
 	errgrp.Go(func() (err error) {
-		dn.Run(runTime)
+		dn.Run(runTime, cfg)
 		return
 	})
 	return errgrp.Wait()

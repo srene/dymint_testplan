@@ -12,6 +12,8 @@ import (
 	"github.com/dymensionxyz/dymint/conv"
 	"github.com/dymensionxyz/dymint/node"
 	"github.com/libp2p/go-libp2p"
+	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/libp2p/go-libp2p/core/host"
 
 	tcfg "github.com/tendermint/tendermint/config"
 	"github.com/tendermint/tendermint/libs/log"
@@ -29,7 +31,55 @@ import (
 	tgsync "github.com/testground/sdk-go/sync"
 )
 
+type NodeConfig struct {
+
+	// whether we're a publisher or a lurker
+	Publisher bool
+
+	FloodPublishing bool
+
+	// pubsub event tracer
+	Tracer pubsub.EventTracer
+
+	// Test instance identifier
+	Seq int64
+
+	//How long to wait after connecting to bootstrap peers before publishing
+	Warmup time.Duration
+
+	// How long to wait for cooldown
+	Cooldown time.Duration
+
+	// Gossipsub heartbeat params
+	Heartbeat HeartbeatParams
+
+	Failure bool
+
+	FailureDuration time.Duration
+	// whether to flood the network when publishing our own messages.
+	// Ignored unless hardening_api build tag is present.
+	//FloodPublishing bool
+
+	// Params for peer scoring function. Ignored unless hardening_api build tag is present.
+	//PeerScoreParams ScoreParams
+
+	OverlayParams OverlayParams
+
+	// Params for inspecting the scoring values.
+	//PeerScoreInspect InspectParams
+
+	// Size of the pubsub validation queue.
+	ValidateQueueSize int
+
+	// Size of the pubsub outbound queue.
+	OutboundQueueSize int
+
+	// Heartbeat tics for opportunistic grafting
+	OpportunisticGraftTicks int
+}
+
 type DymintNode struct {
+	cfg        NodeConfig
 	tmConfig   *tcfg.Config
 	config     *config.NodeConfig
 	ctx        context.Context
@@ -38,6 +88,8 @@ type DymintNode struct {
 	seq        int64
 	runenv     *runtime.RunEnv
 	node       *node.Node
+	h          host.Host
+	//Tracer     pubsub.EventTracer
 }
 
 // InitFilesWithConfig initialises a fresh Dymint instance.
@@ -112,7 +164,14 @@ func initFilesWithConfig(ctx context.Context, runenv *runtime.RunEnv, config *tc
 	return nil
 }
 
-func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, client *tgsync.DefaultClient, aggregator bool, ip net.IP) (*DymintNode, error) {
+func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, client *tgsync.DefaultClient, aggregator bool, ip net.IP, cfg NodeConfig) (*DymintNode, error) {
+
+	opts, err := pubsubOptions(cfg)
+	// Set the heartbeat initial delay and interval
+	pubsub.GossipSubHeartbeatInitialDelay = cfg.Heartbeat.InitialDelay
+	pubsub.GossipSubHeartbeatInterval = cfg.Heartbeat.Interval
+	pubsub.GossipSubHistoryLength = 100
+	pubsub.GossipSubHistoryGossip = 50
 
 	tmConfig := tcfg.DefaultConfig()
 	config := &config.DefaultNodeConfig
@@ -155,6 +214,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 
 	multiaddr := tgsync.NewTopic("addr", &Multiaddr{})
 
+	var host host.Host
 	if !aggregator {
 		// Subscribe to the `transfer-key` topic
 		tch := make(chan *Multiaddr)
@@ -164,7 +224,16 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		tmConfig.P2P.Seeds = t.Addr + "@" + t.Ip + ":" + t.Port
 
 		runenv.RecordMessage("Sequencer multiaddr %s", tmConfig.P2P.Seeds)
-
+		nodeKey, err := p2p.LoadNodeKey(tmConfig.NodeKeyFile())
+		if err != nil {
+			return nil, err
+		}
+		signingKey, err := conv.GetNodeKey(nodeKey)
+		if err != nil {
+			return nil, err
+		}
+		// convert nodeKey to libp2p key
+		host, err = libp2p.New(libp2p.Identity(signingKey))
 	} else {
 		nodeKey, err := p2p.LoadNodeKey(tmConfig.NodeKeyFile())
 		if err != nil {
@@ -175,7 +244,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 			return nil, err
 		}
 		// convert nodeKey to libp2p key
-		host, err := libp2p.New(libp2p.Identity(signingKey))
+		host, err = libp2p.New(libp2p.Identity(signingKey))
 		if err != nil {
 			return nil, err
 		}
@@ -198,6 +267,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		proxy.DefaultClientCreator(tmConfig.ProxyApp, tmConfig.ABCI, tmConfig.DBDir()),
 		genesis,
 		logger,
+		opts...,
 	)
 
 	/*server := rpc.NewServer(dymintNode, tmConfig.RPC, logger)
@@ -206,6 +276,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		return nil, err
 	}*/
 	n := &DymintNode{
+		cfg:        cfg,
 		tmConfig:   tmConfig,
 		config:     config,
 		node:       node,
@@ -213,12 +284,43 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		aggregator: aggregator,
 		seq:        seq,
 		runenv:     runenv,
+		h:          host,
 	}
 
 	return n, nil
 }
 
-func (dn *DymintNode) Run(runtime time.Duration) error {
+func pubsubOptions(cfg NodeConfig) ([]pubsub.Option, error) {
+	opts := []pubsub.Option{
+		pubsub.WithEventTracer(cfg.Tracer),
+	}
+
+	if cfg.ValidateQueueSize > 0 {
+		opts = append(opts, pubsub.WithValidateQueueSize(cfg.ValidateQueueSize))
+	}
+
+	if cfg.OutboundQueueSize > 0 {
+		opts = append(opts, pubsub.WithPeerOutboundQueueSize(cfg.OutboundQueueSize))
+	}
+
+	// Set the overlay parameters
+	if cfg.OverlayParams.d >= 0 {
+		pubsub.GossipSubD = cfg.OverlayParams.d
+	}
+	if cfg.OverlayParams.dlo >= 0 {
+		pubsub.GossipSubDlo = cfg.OverlayParams.dlo
+	}
+	if cfg.OverlayParams.dhi >= 0 {
+		pubsub.GossipSubDhi = cfg.OverlayParams.dhi
+	}
+
+	return opts, nil
+}
+
+func (dn *DymintNode) Run(runtime time.Duration, cfg NodeConfig) error {
+
+	//opts, err := pubsubOptions(cfg)
+
 	defer func() {
 		dn.runenv.RecordMessage("Shutting down")
 		dn.node.Stop()
