@@ -4,19 +4,19 @@ go 1.20
 
 replace (
 	github.com/centrifuge/go-substrate-rpc-client/v4 => github.com/availproject/go-substrate-rpc-client/v4 v4.0.12-avail-1.4.0-rc1-5e286e3
-	github.com/dymensionxyz/dymint => github.com/srene/dymint v0.0.0-20231201103041-f21db91108a1
+	github.com/dymensionxyz/dymint => github.com/srene/dymint v0.0.0-20231204145639-fc33487571b9
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 	github.com/gorilla/rpc => github.com/dymensionxyz/rpc v1.3.1
-	github.com/libp2p/go-libp2p-pubsub v0.10.0 => github.com/srene/go-libp2p-pubsub v0.0.0-20231126174829-0d02edab8e29
+	github.com/libp2p/go-libp2p-pubsub v0.10.0 => github.com/srene/go-libp2p-pubsub v0.0.0-20231204154135-b89b4d5fd0b4
 	github.com/tendermint/tendermint => github.com/cometbft/cometbft v0.34.28
 	sourcegraph.com/sourcegraph/go-diff v0.5.0 => github.com/sourcegraph/go-diff v0.5.1
-
 )
 
 require (
 	github.com/dymensionxyz/dymint v0.0.0-00010101000000-000000000000
 	github.com/libp2p/go-libp2p v0.32.0
 	github.com/libp2p/go-libp2p-pubsub v0.10.0
+	github.com/srene/tm-load-test v0.0.0-20231205100251-1efe2e60d2b4
 	github.com/tendermint/tendermint v0.34.28
 	github.com/testground/sdk-go v0.3.0
 	golang.org/x/sync v0.4.0
@@ -107,6 +107,7 @@ require (
 	github.com/google/pprof v0.0.0-20231023181126-ff6d637d2a7b // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/mux v1.8.0 // indirect
+	github.com/gorilla/rpc v1.2.0 // indirect
 	github.com/gorilla/websocket v1.5.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
@@ -123,7 +124,7 @@ require (
 	github.com/holiman/uint256 v1.2.2-0.20230321075855-87b91420868c // indirect
 	github.com/huin/goupnp v1.3.0 // indirect
 	github.com/ignite/cli v0.25.2 // indirect
-	github.com/inconshreveable/mousetrap v1.0.1 // indirect
+	github.com/inconshreveable/mousetrap v1.1.0 // indirect
 	github.com/influxdata/influxdb1-client v0.0.0-20220302092344-a9ab5670611c // indirect
 	github.com/ipfs/boxo v0.10.0 // indirect
 	github.com/ipfs/go-cid v0.4.1 // indirect
@@ -198,10 +199,12 @@ require (
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/rs/cors v1.8.3 // indirect
 	github.com/sasha-s/go-deadlock v0.3.1 // indirect
+	github.com/satori/go.uuid v1.2.0 // indirect
+	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/spf13/afero v1.9.3 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
-	github.com/spf13/cobra v1.6.1 // indirect
+	github.com/spf13/cobra v1.7.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/spf13/viper v1.15.0 // indirect

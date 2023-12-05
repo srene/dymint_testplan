@@ -13,6 +13,8 @@ import (
 	"github.com/testground/sdk-go/runtime"
 	tgsync "github.com/testground/sdk-go/sync"
 	"golang.org/x/sync/errgroup"
+
+	"github.com/srene/tm-load-test/pkg/loadtest"
 )
 
 type IP struct {
@@ -27,6 +29,10 @@ type Multiaddr struct {
 
 type Genesis struct {
 	Gen []byte
+}
+
+type ValidatorKey struct {
+	ValKey []byte
 }
 
 // setupNetwork instructs the sidecar (if enabled) to setup the network for this
@@ -70,6 +76,41 @@ func setupNetwork(ctx context.Context, runenv *runtime.RunEnv, netclient *networ
 	}
 
 	return config, nil
+}
+
+func sendingTransactions(runenv *runtime.RunEnv, runTime time.Duration, ip net.IP) {
+
+	var cfg loadtest.Config
+	cfg.ClientFactory = "kvstore"
+	cfg.Endpoints = []string{"ws://" + ip.String() + ":26657/websocket"}
+	cfg.Connections = 1
+	cfg.Count = -1
+	cfg.BroadcastTxMethod = "async"
+	cfg.Rate = 10
+	cfg.SendPeriod = 2
+	cfg.Size = 250
+	cfg.Time = int(runTime.Seconds())
+	cfg.EndpointSelectMethod = "supplied"
+	runenv.RecordMessage("Connecting to remote endpoints ", cfg.Endpoints, cfg.MaxTxsPerEndpoint(), cfg.Rate, cfg.Time, cfg.Count)
+
+	if err := cfg.Validate(); err != nil {
+		runenv.RecordMessage(err.Error())
+		//os.Exit(1)
+	}
+	tg := loadtest.NewTransactorGroup()
+	//tg.SetLogger(logger)
+	if err := tg.AddAll(&cfg); err != nil {
+		runenv.RecordCrash("adding transactor error")
+		return
+	}
+	runenv.RecordMessage("Initiating load test %s", cfg.Endpoints)
+	tg.Start()
+
+	if err := tg.Wait(); err != nil {
+		runenv.RecordMessage("Failed to execute load test", "err", err)
+		return
+	}
+
 }
 
 func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
@@ -159,6 +200,9 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 		dn.Run(runTime, cfg)
 		return
 	})
+	if seq == 1 {
+		sendingTransactions(runenv, runTime, ip)
+	}
 	return errgrp.Wait()
 
 }

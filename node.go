@@ -11,6 +11,7 @@ import (
 	"github.com/dymensionxyz/dymint/config"
 	"github.com/dymensionxyz/dymint/conv"
 	"github.com/dymensionxyz/dymint/node"
+	"github.com/dymensionxyz/dymint/rpc"
 	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
 	"github.com/libp2p/go-libp2p/core/host"
@@ -125,6 +126,7 @@ func initFilesWithConfig(ctx context.Context, runenv *runtime.RunEnv, config *tc
 	genFile := config.GenesisFile()
 
 	gen := tgsync.NewTopic("genesis", &Genesis{})
+	val := tgsync.NewTopic("validator", &ValidatorKey{})
 
 	if aggregator {
 		genDoc := types.GenesisDoc{
@@ -149,6 +151,10 @@ func initFilesWithConfig(ctx context.Context, runenv *runtime.RunEnv, config *tc
 		_, err = client.Publish(ctx, gen, &Genesis{byteValue})
 		runenv.RecordMessage("Genesis doc created for %s", genDoc.ChainID)
 
+		jsonFileVal, err := os.Open(privValKeyFile)
+		byteValueVal, _ := io.ReadAll(jsonFileVal)
+		_, err = client.Publish(ctx, val, &ValidatorKey{byteValueVal})
+
 	} else {
 
 		tch := make(chan *Genesis)
@@ -158,7 +164,13 @@ func initFilesWithConfig(ctx context.Context, runenv *runtime.RunEnv, config *tc
 		if err != nil {
 			return err
 		}
-
+		vch := make(chan *ValidatorKey)
+		client.Subscribe(ctx, val, vch)
+		key := <-vch
+		err = os.WriteFile(privValKeyFile, key.ValKey, 0644)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -210,6 +222,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 
 	tmConfig.P2P.ListenAddress = "tcp://" + ip.String() + ":26656"
 
+	tmConfig.RPC.ListenAddress = "tcp://" + ip.String() + ":26657"
 	runenv.RecordMessage("Listen address %s", tmConfig.P2P.ListenAddress)
 
 	multiaddr := tgsync.NewTopic("addr", &Multiaddr{})
@@ -270,11 +283,11 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		opts...,
 	)
 
-	/*server := rpc.NewServer(dymintNode, tmConfig.RPC, logger)
+	server := rpc.NewServer(node, tmConfig.RPC, logger)
 	err = server.Start()
 	if err != nil {
 		return nil, err
-	}*/
+	}
 	n := &DymintNode{
 		cfg:        cfg,
 		tmConfig:   tmConfig,
@@ -326,6 +339,7 @@ func (dn *DymintNode) Run(runtime time.Duration, cfg NodeConfig) error {
 		dn.node.Stop()
 	}()
 	dn.node.Start()
+
 	select {
 	case <-time.After(runtime):
 	case <-dn.ctx.Done():
