@@ -231,18 +231,15 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 
 	var host host.Host
 
-	var kv int
-	kvstore := tgsync.NewTopic("kv", &KV{})
-
 	if !aggregator {
 		// Subscribe to the `transfer-key` topic
 		tch := make(chan *Multiaddr)
 		client.Subscribe(ctx, multiaddr, tch)
 		t := <-tch
-		tmConfig.P2P.PersistentPeers = t.Addr + "@" + t.Ip + ":" + t.Port
-		tmConfig.P2P.Seeds = t.Addr + "@" + t.Ip + ":" + t.Port
+		//tmConfig.P2P.PersistentPeers = t.Addr + "@" + t.Ip + ":" + t.Port
+		//tmConfig.P2P.Seeds = t.Addr + "@" + t.Ip + ":" + t.Port
 
-		runenv.RecordMessage("Sequencer multiaddr %s", tmConfig.P2P.Seeds)
+		runenv.RecordMessage("Sequencer multiaddr %s", t.Addr)
 		nodeKey, err := p2p.LoadNodeKey(tmConfig.NodeKeyFile())
 		if err != nil {
 			return nil, err
@@ -253,13 +250,6 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		}
 		// convert nodeKey to libp2p key
 		host, err = libp2p.New(libp2p.Identity(signingKey))
-
-		kch := make(chan *KV)
-		client.Subscribe(ctx, kvstore, kch)
-		runenv.RecordMessage("Waiting for SL KVstore")
-		store := <-kch
-		kv = store.Kv
-		runenv.RecordMessage("KV received %d", kv)
 
 	} else {
 		nodeKey, err := p2p.LoadNodeKey(tmConfig.NodeKeyFile())
@@ -276,10 +266,6 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 			return nil, err
 		}
 		client.Publish(ctx, multiaddr, &Multiaddr{host.ID().String(), ip.String(), "26656"})
-
-		//kv = store.NewDefaultInMemoryKVStore()
-
-		client.Publish(ctx, kvstore, &KV{0})
 
 	}
 
