@@ -4,7 +4,7 @@ go 1.20
 
 replace (
 	github.com/centrifuge/go-substrate-rpc-client/v4 => github.com/availproject/go-substrate-rpc-client/v4 v4.0.12-avail-1.4.0-rc1-5e286e3
-	github.com/dymensionxyz/dymint => github.com/srene/dymint v0.0.0-20231204145639-fc33487571b9
+	github.com/dymensionxyz/dymint => github.com/srene/dymint v0.0.0-20231213132430-92ec9088eba2
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 	github.com/gorilla/rpc => github.com/dymensionxyz/rpc v1.3.1
 	github.com/libp2p/go-libp2p-pubsub v0.10.0 => github.com/srene/go-libp2p-pubsub v0.0.0-20231204154135-b89b4d5fd0b4

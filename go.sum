@@ -959,8 +959,8 @@ github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An
 github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
 github.com/spf13/viper v1.15.0 h1:js3yy885G8xwJa6iOISGFwd+qlUo5AvyXb7CiihdtiU=
 github.com/spf13/viper v1.15.0/go.mod h1:fFcTBJxvhhzSJiZy8n+PeW6t8l+KeT/uTARa0jHOQLA=
-github.com/srene/dymint v0.0.0-20231204145639-fc33487571b9 h1:QdHALYEjJWNGisMfmtd1l6KKCySgmqaEpE79qz3aG6k=
-github.com/srene/dymint v0.0.0-20231204145639-fc33487571b9/go.mod h1:TY3OoyqG4UCChYZWK/9pSK068z6r4vMe36e+kLY5gfw=
+github.com/srene/dymint v0.0.0-20231213132430-92ec9088eba2 h1:EY2s3hf56FLjNcCS72/XHwHP+qavxsPlDH/TpoGU1nM=
+github.com/srene/dymint v0.0.0-20231213132430-92ec9088eba2/go.mod h1:KCuNldD+6E2CJ8KjzbuEI6IB3gcQ7HdzRndxRyl8FdU=
 github.com/srene/go-libp2p-pubsub v0.0.0-20231204154135-b89b4d5fd0b4 h1:7shAHXBjPCLBeO/ISFJ5uRLCxIaqN3ij9YbfjEL/4jA=
 github.com/srene/go-libp2p-pubsub v0.0.0-20231204154135-b89b4d5fd0b4/go.mod h1:y1GiEZMDV67vpQ34ohO6jAat/kb72AQZ/D6cHRh6ek8=
 github.com/srene/tm-load-test v0.0.0-20231205100251-1efe2e60d2b4 h1:q5D7qjpjOnwuFRewz6iiUCO5xDefqqCYNAh3nV6xQfQ=

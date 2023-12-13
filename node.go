@@ -115,6 +115,7 @@ func initFilesWithConfig(ctx context.Context, runenv *runtime.RunEnv, config *tc
 	runenv.RecordMessage("pv %s", pv.Key.Address)
 
 	nodeKeyFile := config.NodeKeyFile()
+
 	if tmos.FileExists(nodeKeyFile) {
 	} else {
 		if _, err := p2p.LoadOrGenNodeKey(nodeKeyFile); err != nil {
@@ -127,7 +128,6 @@ func initFilesWithConfig(ctx context.Context, runenv *runtime.RunEnv, config *tc
 
 	gen := tgsync.NewTopic("genesis", &Genesis{})
 	val := tgsync.NewTopic("validator", &ValidatorKey{})
-
 	if aggregator {
 		genDoc := types.GenesisDoc{
 			ChainID:         fmt.Sprintf("test-chain-%v", tmrand.Str(6)),
@@ -188,6 +188,9 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 	tmConfig := tcfg.DefaultConfig()
 	config := &config.DefaultNodeConfig
 
+	config.SettlementConfig.KeyringHomeDir = "/"
+	config.DALayer = "grpc"
+	config.SettlementLayer = "grpc"
 	initFilesWithConfig(ctx, runenv, tmConfig, client, aggregator)
 
 	nodeKey, err := tmp2p.LoadOrGenNodeKey(tmConfig.NodeKeyFile())
@@ -216,18 +219,21 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 	config.BatchSubmitMaxTime = time.Hour
 	config.BlockBatchMaxSizeBytes = 50000000
 
+	config.DALayer = "grpc"
 	tmConfig.ProxyApp = "kvstore"
 	tmConfig.LogLevel = "debug"
 	config.Aggregator = aggregator
-
 	tmConfig.P2P.ListenAddress = "tcp://" + ip.String() + ":26656"
-
 	tmConfig.RPC.ListenAddress = "tcp://" + ip.String() + ":26657"
 	runenv.RecordMessage("Listen address %s", tmConfig.P2P.ListenAddress)
 
 	multiaddr := tgsync.NewTopic("addr", &Multiaddr{})
 
 	var host host.Host
+
+	var kv int
+	kvstore := tgsync.NewTopic("kv", &KV{})
+
 	if !aggregator {
 		// Subscribe to the `transfer-key` topic
 		tch := make(chan *Multiaddr)
@@ -247,6 +253,14 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		}
 		// convert nodeKey to libp2p key
 		host, err = libp2p.New(libp2p.Identity(signingKey))
+
+		kch := make(chan *KV)
+		client.Subscribe(ctx, kvstore, kch)
+		runenv.RecordMessage("Waiting for SL KVstore")
+		store := <-kch
+		kv = store.Kv
+		runenv.RecordMessage("KV received %d", kv)
+
 	} else {
 		nodeKey, err := p2p.LoadNodeKey(tmConfig.NodeKeyFile())
 		if err != nil {
@@ -263,6 +277,10 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		}
 		client.Publish(ctx, multiaddr, &Multiaddr{host.ID().String(), ip.String(), "26656"})
 
+		//kv = store.NewDefaultInMemoryKVStore()
+
+		client.Publish(ctx, kvstore, &KV{0})
+
 	}
 
 	err = conv.GetNodeConfig(config, tmConfig)
@@ -272,6 +290,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 	runenv.RecordMessage("starting node with ABCI dymint with ip %s", ip)
 
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
+
 	node, err := node.NewNode(
 		context.Background(),
 		*config,
@@ -280,6 +299,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		proxy.DefaultClientCreator(tmConfig.ProxyApp, tmConfig.ABCI, tmConfig.DBDir()),
 		genesis,
 		logger,
+		nil,
 		opts...,
 	)
 

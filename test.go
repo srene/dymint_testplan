@@ -35,6 +35,10 @@ type ValidatorKey struct {
 	ValKey []byte
 }
 
+type KV struct {
+	Kv int
+}
+
 // setupNetwork instructs the sidecar (if enabled) to setup the network for this
 // test case.
 func setupNetwork(ctx context.Context, runenv *runtime.RunEnv, netclient *network.Client, latencyMin int, latencyMax int, bandwidth int) (*network.Config, error) {
@@ -86,8 +90,8 @@ func sendingTransactions(runenv *runtime.RunEnv, runTime time.Duration, ip net.I
 	cfg.Connections = 1
 	cfg.Count = -1
 	cfg.BroadcastTxMethod = "async"
-	cfg.Rate = 10
-	cfg.SendPeriod = 2
+	cfg.Rate = 1
+	cfg.SendPeriod = 1
 	cfg.Size = 250
 	cfg.Time = int(runTime.Seconds())
 	cfg.EndpointSelectMethod = "supplied"
