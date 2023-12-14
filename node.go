@@ -191,6 +191,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 	config.SettlementConfig.KeyringHomeDir = "/"
 	config.DALayer = "grpc"
 	config.SettlementLayer = "grpc"
+
 	initFilesWithConfig(ctx, runenv, tmConfig, client, aggregator)
 
 	nodeKey, err := tmp2p.LoadOrGenNodeKey(tmConfig.NodeKeyFile())
@@ -216,13 +217,13 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 	}
 	runenv.RecordMessage("Genesis chain %s", genesis.ChainID)
 
-	config.BatchSubmitMaxTime = time.Hour
-	config.BlockBatchMaxSizeBytes = 50000000
+	//config.BatchSubmitMaxTime = time.Hour
+	//config.BlockBatchMaxSizeBytes = 50000000
 
-	config.DALayer = "grpc"
 	tmConfig.ProxyApp = "kvstore"
 	tmConfig.LogLevel = "debug"
 	config.Aggregator = aggregator
+	config.BatchSubmitMaxTime = time.Second * 10
 	tmConfig.P2P.ListenAddress = "tcp://" + ip.String() + ":26656"
 	tmConfig.RPC.ListenAddress = "tcp://" + ip.String() + ":26657"
 	runenv.RecordMessage("Listen address %s", tmConfig.P2P.ListenAddress)
@@ -239,7 +240,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		//tmConfig.P2P.PersistentPeers = t.Addr + "@" + t.Ip + ":" + t.Port
 		//tmConfig.P2P.Seeds = t.Addr + "@" + t.Ip + ":" + t.Port
 
-		runenv.RecordMessage("Sequencer multiaddr %s", t.Addr)
+		runenv.RecordMessage("Sequencer multiaddr %s", t.Ip)
 		nodeKey, err := p2p.LoadNodeKey(tmConfig.NodeKeyFile())
 		if err != nil {
 			return nil, err
@@ -250,7 +251,11 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		}
 		// convert nodeKey to libp2p key
 		host, err = libp2p.New(libp2p.Identity(signingKey))
-
+		//config.DAGrpc.Host = t.Ip
+		//config.DAGrpc.Port = 7980
+		config.DAConfig = "{\"host\": \"" + t.Ip + "\", \"port\": 7980}"
+		config.SettlementConfig.SLGrpc.Host = t.Ip
+		config.SettlementConfig.SLGrpc.Port = 7981
 	} else {
 		nodeKey, err := p2p.LoadNodeKey(tmConfig.NodeKeyFile())
 		if err != nil {
@@ -266,7 +271,12 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 			return nil, err
 		}
 		client.Publish(ctx, multiaddr, &Multiaddr{host.ID().String(), ip.String(), "26656"})
-
+		config.DAConfig = "{\"host\": \"" + ip.String() + "\", \"port\": 7980}"
+		//config.DAGrpc.Port = 7980
+		config.SettlementConfig.SLGrpc.Host = ip.String()
+		config.SettlementConfig.SLGrpc.Port = 7981
+		go runGrpcDaServer(ip.String(), 7980)
+		go runGrpcSlServer(ip.String(), 7981)
 	}
 
 	err = conv.GetNodeConfig(config, tmConfig)

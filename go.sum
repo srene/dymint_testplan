@@ -959,10 +959,10 @@ github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An
 github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
 github.com/spf13/viper v1.15.0 h1:js3yy885G8xwJa6iOISGFwd+qlUo5AvyXb7CiihdtiU=
 github.com/spf13/viper v1.15.0/go.mod h1:fFcTBJxvhhzSJiZy8n+PeW6t8l+KeT/uTARa0jHOQLA=
-github.com/srene/dymint v0.0.0-20231213132430-92ec9088eba2 h1:EY2s3hf56FLjNcCS72/XHwHP+qavxsPlDH/TpoGU1nM=
-github.com/srene/dymint v0.0.0-20231213132430-92ec9088eba2/go.mod h1:KCuNldD+6E2CJ8KjzbuEI6IB3gcQ7HdzRndxRyl8FdU=
-github.com/srene/go-libp2p-pubsub v0.0.0-20231204154135-b89b4d5fd0b4 h1:7shAHXBjPCLBeO/ISFJ5uRLCxIaqN3ij9YbfjEL/4jA=
-github.com/srene/go-libp2p-pubsub v0.0.0-20231204154135-b89b4d5fd0b4/go.mod h1:y1GiEZMDV67vpQ34ohO6jAat/kb72AQZ/D6cHRh6ek8=
+github.com/srene/dymint v0.0.0-20231214100423-5f8392077910 h1:z3nDpYepG4b3M7fBR+c+0cPApdGPwBleXa2qX3lW92A=
+github.com/srene/dymint v0.0.0-20231214100423-5f8392077910/go.mod h1:KCuNldD+6E2CJ8KjzbuEI6IB3gcQ7HdzRndxRyl8FdU=
+github.com/srene/go-libp2p-pubsub v0.0.0-20231213142708-21ac66087874 h1:ILHS0faIVjm6EyYP2H/3R+cRWJ/KByOzWL2oiDUudJY=
+github.com/srene/go-libp2p-pubsub v0.0.0-20231213142708-21ac66087874/go.mod h1:z39FaaxRb4p8QTYgfkgo7Te8cSltLkOZzdlkRdQ9jMc=
 github.com/srene/tm-load-test v0.0.0-20231205100251-1efe2e60d2b4 h1:q5D7qjpjOnwuFRewz6iiUCO5xDefqqCYNAh3nV6xQfQ=
 github.com/srene/tm-load-test v0.0.0-20231205100251-1efe2e60d2b4/go.mod h1:DZ0uungB4M8UA2LfPnHtkZXLN5jmkyEUUXuM7VJ3Wlw=
 github.com/status-im/keycard-go v0.2.0 h1:QDLFswOQu1r5jsycloeQh3bVU8n/NatHHaZobtDnDzA=
