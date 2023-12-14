@@ -204,9 +204,9 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 		dn.Run(runTime, cfg)
 		return
 	})
-	/*if seq == 1 {
+	if seq == 1 {
 		sendingTransactions(runenv, runTime, ip)
-	}*/
+	}
 	return errgrp.Wait()
 
 }
