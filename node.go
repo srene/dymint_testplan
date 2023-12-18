@@ -11,9 +11,12 @@ import (
 	"github.com/dymensionxyz/dymint/config"
 	"github.com/dymensionxyz/dymint/conv"
 	"github.com/dymensionxyz/dymint/node"
+	"github.com/dymensionxyz/dymint/p2p"
 	"github.com/dymensionxyz/dymint/rpc"
-	"github.com/libp2p/go-libp2p"
 	pubsub "github.com/libp2p/go-libp2p-pubsub"
+
+	"github.com/libp2p/go-libp2p"
+
 	"github.com/libp2p/go-libp2p/core/host"
 
 	tcfg "github.com/tendermint/tendermint/config"
@@ -21,7 +24,6 @@ import (
 	tmos "github.com/tendermint/tendermint/libs/os"
 	tmrand "github.com/tendermint/tendermint/libs/rand"
 	tmnode "github.com/tendermint/tendermint/node"
-	"github.com/tendermint/tendermint/p2p"
 	tmp2p "github.com/tendermint/tendermint/p2p"
 	"github.com/tendermint/tendermint/privval"
 	"github.com/tendermint/tendermint/proxy"
@@ -37,10 +39,17 @@ type NodeConfig struct {
 	// whether we're a publisher or a lurker
 	Publisher bool
 
+	Grpc bool
+
+	P2p bool
+
+	
 	FloodPublishing bool
 
 	// pubsub event tracer
-	Tracer pubsub.EventTracer
+	Tracer p2p.EventTracer
+
+	GossipTracer pubsub.EventTracer
 
 	// Test instance identifier
 	Seq int64
@@ -118,7 +127,7 @@ func initFilesWithConfig(ctx context.Context, runenv *runtime.RunEnv, config *tc
 
 	if tmos.FileExists(nodeKeyFile) {
 	} else {
-		if _, err := p2p.LoadOrGenNodeKey(nodeKeyFile); err != nil {
+		if _, err := tmp2p.LoadOrGenNodeKey(nodeKeyFile); err != nil {
 			return err
 		}
 	}
@@ -178,7 +187,7 @@ func initFilesWithConfig(ctx context.Context, runenv *runtime.RunEnv, config *tc
 
 func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, client *tgsync.DefaultClient, aggregator bool, ip net.IP, cfg NodeConfig) (*DymintNode, error) {
 
-	opts, err := pubsubOptions(cfg)
+	//opts, err := pubsubOptions(cfg)
 	// Set the heartbeat initial delay and interval
 	pubsub.GossipSubHeartbeatInitialDelay = cfg.Heartbeat.InitialDelay
 	pubsub.GossipSubHeartbeatInterval = cfg.Heartbeat.Interval
@@ -189,6 +198,8 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 	config := &config.DefaultNodeConfig
 
 	config.SettlementConfig.KeyringHomeDir = "/"
+
+	if cfg.
 	config.DALayer = "grpc"
 	config.SettlementLayer = "grpc"
 
@@ -241,7 +252,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		//tmConfig.P2P.Seeds = t.Addr + "@" + t.Ip + ":" + t.Port
 
 		runenv.RecordMessage("Sequencer multiaddr %s", t.Ip)
-		nodeKey, err := p2p.LoadNodeKey(tmConfig.NodeKeyFile())
+		nodeKey, err := tmp2p.LoadNodeKey(tmConfig.NodeKeyFile())
 		if err != nil {
 			return nil, err
 		}
@@ -257,7 +268,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		config.SettlementConfig.SLGrpc.Host = t.Ip
 		config.SettlementConfig.SLGrpc.Port = 7981
 	} else {
-		nodeKey, err := p2p.LoadNodeKey(tmConfig.NodeKeyFile())
+		nodeKey, err := tmp2p.LoadNodeKey(tmConfig.NodeKeyFile())
 		if err != nil {
 			return nil, err
 		}
@@ -287,6 +298,11 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 
+	runenv.RecordMessage("Tracer %s", cfg.Tracer)
+	opts := []p2p.Option{
+		p2p.WithEventTracer(cfg.Tracer),
+		p2p.WithGossipEventTracer(cfg.GossipTracer),
+	}
 	node, err := node.NewNode(
 		context.Background(),
 		*config,
@@ -295,7 +311,6 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		proxy.DefaultClientCreator(tmConfig.ProxyApp, tmConfig.ABCI, tmConfig.DBDir()),
 		genesis,
 		logger,
-		nil,
 		opts...,
 	)
 
@@ -319,7 +334,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 	return n, nil
 }
 
-func pubsubOptions(cfg NodeConfig) ([]pubsub.Option, error) {
+/*func pubsubOptions(cfg NodeConfig) ([]pubsub.Option, error) {
 	opts := []pubsub.Option{
 		pubsub.WithEventTracer(cfg.Tracer),
 	}
@@ -344,7 +359,7 @@ func pubsubOptions(cfg NodeConfig) ([]pubsub.Option, error) {
 	}
 
 	return opts, nil
-}
+}*/
 
 func (dn *DymintNode) Run(runtime time.Duration, cfg NodeConfig) error {
 

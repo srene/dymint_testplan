@@ -271,8 +271,8 @@ github.com/dvsekhvalnov/jose2go v1.5.0 h1:3j8ya4Z4kMCwT5nXIKFSV84YS+HdqSSO0VsTQx
 github.com/dvsekhvalnov/jose2go v1.5.0/go.mod h1:QsHjhyTlD/lAVqn/NSbVZmSCGeDehTB/mPZadG+mhXU=
 github.com/dymensionxyz/cosmosclient v0.4.2-beta h1:sokBefcN1tIOlUKmB8Q2E9XMJ93LueqtFThiM/kA4DI=
 github.com/dymensionxyz/cosmosclient v0.4.2-beta/go.mod h1:GQQu3ITEjWfi5ULR2B6X2i2YZNennY1yzcT5qdL4MGI=
-github.com/dymensionxyz/dymension v0.2.0-beta.0.20230607115558-745644a96ea6 h1:dnriGXmMdYEiF/8lMrj+PDlN1vyQc6zgs/ZHL67eoyI=
-github.com/dymensionxyz/dymension v0.2.0-beta.0.20230607115558-745644a96ea6/go.mod h1:rDkVuF+DxBDi5tTgVHFk1D2xpqf8bOccs6aB1wTOvP0=
+github.com/dymensionxyz/dymension v1.0.2-beta h1:YxRK1RnQs9Fdwkjv+3QafapUdTlwR7JlusZRE/WiCQI=
+github.com/dymensionxyz/dymension v1.0.2-beta/go.mod h1:H58P/Sr1XarnbauzPBDlHexRA7RNgDWV8xJ14e/ONU8=
 github.com/dymensionxyz/rpc v1.3.1 h1:7EXWIobaBes5zldRvTIg7TmNsEKjicrWA/OjCc0NaGs=
 github.com/dymensionxyz/rpc v1.3.1/go.mod h1:f+WpX8ysy8wt95iGc6auYlHcnHj2bUkhiRVkkKNys8c=
 github.com/elastic/gosigar v0.12.0/go.mod h1:iXRIGg2tLnu7LBdpqzyQfGDEidKCfWcCMS0WKyPWoMs=
@@ -355,8 +355,8 @@ github.com/go-playground/locales v0.13.0/go.mod h1:taPMhCMXrRLJO55olJkUXHZBHCxTM
 github.com/go-playground/universal-translator v0.17.0 h1:icxd5fm+REJzpZx7ZfpaD876Lmtgy7VtROAbHHXk8no=
 github.com/go-playground/universal-translator v0.17.0/go.mod h1:UkSxE5sNxxRwHyU+Scu5vgOQjsIJAF8j9muTVoKLVtA=
 github.com/go-playground/validator/v10 v10.2.0/go.mod h1:uOYAAleCW8F/7oMFd6aG0GOhaH6EGOAJShg8Id5JGkI=
-github.com/go-playground/validator/v10 v10.3.0 h1:nZU+7q+yJoFmwvNgv/LnPUkwPal62+b2xXj0AU1Es7o=
 github.com/go-playground/validator/v10 v10.3.0/go.mod h1:uOYAAleCW8F/7oMFd6aG0GOhaH6EGOAJShg8Id5JGkI=
+github.com/go-playground/validator/v10 v10.4.1 h1:pH2c5ADXtd66mxoE0Zm9SUhxE20r7aM3F26W0hOn+GE=
 github.com/go-redis/redis/v7 v7.4.0/go.mod h1:JDNMw23GTyLNC4GZu9njt15ctBQVn7xjRfnwdHj/Dcg=
 github.com/go-resty/resty/v2 v2.7.0 h1:me+K9p3uhSmXtrBZ4k9jcEAfJmuC8IivWHwaLZwPrFY=
 github.com/go-resty/resty/v2 v2.7.0/go.mod h1:9PWDzw47qPphMRFfhsyk0NnSgvluHcljSMVIq3w7q0I=
@@ -959,10 +959,10 @@ github.com/spf13/pflag v1.0.5/go.mod h1:McXfInJRrz4CZXVZOBLb0bTZqETkiAhM9Iw0y3An
 github.com/spf13/viper v1.3.2/go.mod h1:ZiWeW+zYFKm7srdB9IoDzzZXaJaI5eL9QjNiN/DMA2s=
 github.com/spf13/viper v1.15.0 h1:js3yy885G8xwJa6iOISGFwd+qlUo5AvyXb7CiihdtiU=
 github.com/spf13/viper v1.15.0/go.mod h1:fFcTBJxvhhzSJiZy8n+PeW6t8l+KeT/uTARa0jHOQLA=
-github.com/srene/dymint v0.0.0-20231214100423-5f8392077910 h1:z3nDpYepG4b3M7fBR+c+0cPApdGPwBleXa2qX3lW92A=
-github.com/srene/dymint v0.0.0-20231214100423-5f8392077910/go.mod h1:KCuNldD+6E2CJ8KjzbuEI6IB3gcQ7HdzRndxRyl8FdU=
-github.com/srene/go-libp2p-pubsub v0.0.0-20231213142708-21ac66087874 h1:ILHS0faIVjm6EyYP2H/3R+cRWJ/KByOzWL2oiDUudJY=
-github.com/srene/go-libp2p-pubsub v0.0.0-20231213142708-21ac66087874/go.mod h1:z39FaaxRb4p8QTYgfkgo7Te8cSltLkOZzdlkRdQ9jMc=
+github.com/srene/dymint v0.0.0-20231216222328-58f58a61ecf5 h1:3R02MGQghSBJcJDZGYXiPU7JZekHPdVz+f1VRTheJgA=
+github.com/srene/dymint v0.0.0-20231216222328-58f58a61ecf5/go.mod h1:lQGyFFcYwudoRz4aiDBul8+OCyN3XedzzaFrLuPmk5Y=
+github.com/srene/go-libp2p-pubsub v0.0.0-20231218101750-3b9f0b97b9d9 h1:6uXwTNJWgVJPAngf8gUpyx3BbSjWFrfvY3iX2+pmnW4=
+github.com/srene/go-libp2p-pubsub v0.0.0-20231218101750-3b9f0b97b9d9/go.mod h1:n3pSV40cjZDLnaOM3HWcfJgKmEutQhQW7QEdm+d/AOk=
 github.com/srene/tm-load-test v0.0.0-20231205100251-1efe2e60d2b4 h1:q5D7qjpjOnwuFRewz6iiUCO5xDefqqCYNAh3nV6xQfQ=
 github.com/srene/tm-load-test v0.0.0-20231205100251-1efe2e60d2b4/go.mod h1:DZ0uungB4M8UA2LfPnHtkZXLN5jmkyEUUXuM7VJ3Wlw=
 github.com/status-im/keycard-go v0.2.0 h1:QDLFswOQu1r5jsycloeQh3bVU8n/NatHHaZobtDnDzA=

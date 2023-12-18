@@ -52,6 +52,8 @@ type testParams struct {
 	runtime           time.Duration
 	cooldown          time.Duration
 	gossipcache       GossipCacheParams
+	grpc              bool
+	p2p               bool
 	publisher         bool
 	floodPublishing   bool
 	fullTraces        bool
@@ -134,6 +136,8 @@ func parseParams(runenv *runtime.RunEnv) testParams {
 		warmup:          durationParam(runenv, "t_warm"),
 		runtime:         durationParam(runenv, "t_run"),
 		cooldown:        durationParam(runenv, "t_cool"),
+		p2p:             runenv.BooleanParam("p2p"),
+		grpc:            runenv.BooleanParam("grpc"),
 		publisher:       runenv.BooleanParam("publisher"),
 		floodPublishing: runenv.BooleanParam("flood_publishing"),
 		fullTraces:      runenv.BooleanParam("full_traces"),

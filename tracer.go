@@ -6,23 +6,16 @@ import (
 	"io/ioutil"
 	"os"
 
-	pubsub "github.com/libp2p/go-libp2p-pubsub"
+	"github.com/dymensionxyz/dymint/p2p"
 	pb "github.com/libp2p/go-libp2p-pubsub/pb"
+	//pb "github.com/dymensionxyz/dymint/p2p/pb"
 )
 
-type RPCMetrics struct {
-	RPCs     uint64
-	Messages uint64
-	Grafts   uint64
-	Prunes   uint64
-	IWants   uint64
-	IHaves   uint64
-}
-
 type TestMetrics struct {
-	LocalPeer    string
-	Published    uint64
-	Rejected     uint64
+	LocalPeer string
+	Published uint64
+	Delivered uint64
+	/*Rejected     uint64
 	Delivered    uint64
 	Duplicates   uint64
 	DroppedRPC   uint64
@@ -32,12 +25,11 @@ type TestMetrics struct {
 	TopicsLeft   uint64
 
 	SentRPC     RPCMetrics
-	ReceivedRPC RPCMetrics
+	ReceivedRPC RPCMetrics*/
 }
 
 type TestTracer struct {
-	full                pubsub.EventTracer
-	filtered            pubsub.EventTracer
+	full                p2p.EventTracer
 	aggregateOutputPath string
 
 	eventCh chan *pb.TraceEvent
@@ -47,25 +39,18 @@ type TestTracer struct {
 }
 
 func NewTestTracer(outputPathPrefix string, localPeerID string, full bool) (*TestTracer, error) {
-	var fullTracer pubsub.EventTracer
+	var fullTracer p2p.EventTracer
 	var err error
 	if full {
-		fullTracer, err = pubsub.NewPBTracer(outputPathPrefix + "-full.bin")
+		fullTracer, err = p2p.NewPBTracer(outputPathPrefix + "-full.bin")
+		//fullTracer, err = pubsub.NewPBTracer(outputPathPrefix + "-full.bin")
 		if err != nil {
 			return nil, fmt.Errorf("error making protobuf event tracer: %s", err)
 		}
 	}
 
-	filteredTracer, err := newFilteringTracer(outputPathPrefix+"-filtered.bin",
-		pb.TraceEvent_PUBLISH_MESSAGE, pb.TraceEvent_DELIVER_MESSAGE,
-		pb.TraceEvent_GRAFT, pb.TraceEvent_PRUNE)
-	if err != nil {
-		return nil, fmt.Errorf("error making filtered event tracer: %s", err)
-	}
-
 	t := &TestTracer{
 		full:                fullTracer,
-		filtered:            filteredTracer,
 		aggregateOutputPath: outputPathPrefix + "-aggregate.json",
 		eventCh:             make(chan *pb.TraceEvent, 1024),
 		doneCh:              make(chan struct{}, 1),
@@ -94,50 +79,56 @@ func (t *TestTracer) eventLoop() {
 			return
 		case evt := <-t.eventCh:
 			switch evt.GetType() {
-			case pb.TraceEvent_PUBLISH_MESSAGE:
-				t.publishMessage(evt)
-			case pb.TraceEvent_REJECT_MESSAGE:
-				t.rejectMessage(evt)
-			case pb.TraceEvent_DUPLICATE_MESSAGE:
-				t.duplicateMessage(evt)
 			case pb.TraceEvent_DELIVER_MESSAGE:
 				t.deliverMessage(evt)
-			case pb.TraceEvent_ADD_PEER:
-				t.addPeer(evt)
-			case pb.TraceEvent_REMOVE_PEER:
-				t.removePeer(evt)
-			case pb.TraceEvent_RECV_RPC:
-				t.recvRPC(evt)
-			case pb.TraceEvent_SEND_RPC:
-				t.sendRPC(evt)
-			case pb.TraceEvent_DROP_RPC:
-				t.dropRPC(evt)
-			case pb.TraceEvent_JOIN:
-				t.join(evt)
-			case pb.TraceEvent_LEAVE:
-				t.leave(evt)
-			case pb.TraceEvent_GRAFT:
-				t.graft(evt)
-			case pb.TraceEvent_PRUNE:
-				t.prune(evt)
+			case pb.TraceEvent_PUBLISH_MESSAGE:
+				t.publishMessage(evt)
+				/*	case pb.TraceEvent_REJECT_MESSAGE:
+						t.rejectMessage(evt)
+					case pb.TraceEvent_DUPLICATE_MESSAGE:
+						t.duplicateMessage(evt)
+					case pb.TraceEvent_DELIVER_MESSAGE:
+						t.deliverMessage(evt)
+					case pb.TraceEvent_ADD_PEER:
+						t.addPeer(evt)
+					case pb.TraceEvent_REMOVE_PEER:
+						t.removePeer(evt)
+					case pb.TraceEvent_RECV_RPC:
+						t.recvRPC(evt)
+					case pb.TraceEvent_SEND_RPC:
+						t.sendRPC(evt)
+					case pb.TraceEvent_DROP_RPC:
+						t.dropRPC(evt)
+					case pb.TraceEvent_JOIN:
+						t.join(evt)
+					case pb.TraceEvent_LEAVE:
+						t.leave(evt)
+					case pb.TraceEvent_GRAFT:
+						t.graft(evt)
+					case pb.TraceEvent_PRUNE:
+						t.prune(evt)*/
 			}
 		}
 	}
 }
 
 func (t *TestTracer) Trace(evt *pb.TraceEvent) {
-	t.filtered.Trace(evt)
+	//t.filtered.Trace(evt)
 	if t.full != nil {
 		t.full.Trace(evt)
 	}
 	t.eventCh <- evt
 }
 
+func (t *TestTracer) deliverMessage(evt *pb.TraceEvent) {
+	t.metrics.Delivered++
+}
+
 func (t *TestTracer) publishMessage(evt *pb.TraceEvent) {
 	t.metrics.Published++
 }
 
-func (t *TestTracer) rejectMessage(evt *pb.TraceEvent) {
+/*func (t *TestTracer) rejectMessage(evt *pb.TraceEvent) {
 	t.metrics.Rejected++
 }
 
@@ -195,28 +186,6 @@ func (t *TestTracer) graft(evt *pb.TraceEvent) {
 
 func (t *TestTracer) prune(evt *pb.TraceEvent) {
 	// already accounted for in sendRPC
-}
+}*/
 
-var _ pubsub.EventTracer = (*TestTracer)(nil)
-
-type filteringTracer struct {
-	pubsub.EventTracer
-	whitelist []pb.TraceEvent_Type
-}
-
-func newFilteringTracer(outputPath string, typeWhitelist ...pb.TraceEvent_Type) (*filteringTracer, error) {
-	tracer, err := pubsub.NewPBTracer(outputPath)
-	if err != nil {
-		return nil, fmt.Errorf("error making protobuf event tracer: %s", err)
-	}
-	return &filteringTracer{EventTracer: tracer, whitelist: typeWhitelist}, nil
-}
-
-func (t *filteringTracer) Trace(evt *pb.TraceEvent) {
-	for _, typ := range t.whitelist {
-		if evt.GetType() == typ {
-			t.EventTracer.Trace(evt)
-			return
-		}
-	}
-}
+var _ p2p.EventTracer = (*TestTracer)(nil)

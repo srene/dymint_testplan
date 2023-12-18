@@ -4,10 +4,10 @@ go 1.20
 
 replace (
 	github.com/centrifuge/go-substrate-rpc-client/v4 => github.com/availproject/go-substrate-rpc-client/v4 v4.0.12-avail-1.4.0-rc1-5e286e3
-	github.com/dymensionxyz/dymint => github.com/srene/dymint v0.0.0-20231214100423-5f8392077910
+	github.com/dymensionxyz/dymint => github.com/srene/dymint v0.0.0-20231216222328-58f58a61ecf5
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 	github.com/gorilla/rpc => github.com/dymensionxyz/rpc v1.3.1
-	github.com/libp2p/go-libp2p-pubsub v0.10.0 => github.com/srene/go-libp2p-pubsub v0.0.0-20231213142708-21ac66087874
+	github.com/libp2p/go-libp2p-pubsub v0.10.0 => github.com/srene/go-libp2p-pubsub v0.0.0-20231218101750-3b9f0b97b9d9
 	github.com/tendermint/tendermint => github.com/cometbft/cometbft v0.34.28
 	sourcegraph.com/sourcegraph/go-diff v0.5.0 => github.com/sourcegraph/go-diff v0.5.1
 )
@@ -22,7 +22,7 @@ require (
 	golang.org/x/sync v0.4.0
 )
 
-require github.com/dymensionxyz/dymension v0.2.0-beta.0.20230607115558-745644a96ea6 // indirect
+require github.com/dymensionxyz/dymension v1.0.2-beta // indirect
 
 require (
 	code.cloudfoundry.org/go-diodes v0.0.0-20220725190411-383eb6634c40 // indirect

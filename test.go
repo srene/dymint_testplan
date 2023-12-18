@@ -90,8 +90,8 @@ func sendingTransactions(runenv *runtime.RunEnv, runTime time.Duration, ip net.I
 	cfg.Connections = 1
 	cfg.Count = -1
 	cfg.BroadcastTxMethod = "async"
-	cfg.Rate = 1
-	cfg.SendPeriod = 1
+	cfg.Rate = 400
+	cfg.SendPeriod = 0.2
 	cfg.Size = 250
 	cfg.Time = int(runTime.Seconds())
 	cfg.EndpointSelectMethod = "supplied"
@@ -163,11 +163,11 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 
 	ip, err = netclient.GetDataNetworkIP()
 
-	//tracerOut := fmt.Sprintf("%s%ctracer-output-%d", runenv.TestOutputsPath, os.PathSeparator, seq)
-	//tracer, err := NewTestTracer(tracerOut, string(seq), true)
-
 	tracerOut := fmt.Sprintf("%s%ctracer-output-%d", runenv.TestOutputsPath, os.PathSeparator, seq)
 	tracer, err := NewTestTracer(tracerOut, fmt.Sprint(seq), true)
+
+	gossipTracerOut := fmt.Sprintf("%s%cgossiptracer-output-%d", runenv.TestOutputsPath, os.PathSeparator, seq)
+	gossipTracer, err := NewGossipTestTracer(gossipTracerOut, fmt.Sprint(seq), true)
 
 	nodeFailing := false
 
@@ -179,10 +179,13 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 	cfg := NodeConfig{
 		Publisher:               aggregator,
 		FloodPublishing:         false,
+		P2p:                     params.p2p,
+		Grpc:                    params.grpc,
 		OverlayParams:           params.overlayParams,
 		FailureDuration:         params.node_failure_time,
 		Failure:                 nodeFailing,
 		Tracer:                  tracer,
+		GossipTracer:            gossipTracer,
 		Seq:                     seq,
 		Warmup:                  params.warmup,
 		Cooldown:                params.cooldown,
