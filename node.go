@@ -43,7 +43,6 @@ type NodeConfig struct {
 
 	P2p bool
 
-	
 	FloodPublishing bool
 
 	// pubsub event tracer
@@ -199,10 +198,13 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 
 	config.SettlementConfig.KeyringHomeDir = "/"
 
-	if cfg.
-	config.DALayer = "grpc"
-	config.SettlementLayer = "grpc"
-
+	if cfg.Grpc {
+		config.DALayer = "grpc"
+		config.SettlementLayer = "grpc"
+	} else {
+		config.DALayer = "mock"
+		config.SettlementLayer = "mock"
+	}
 	initFilesWithConfig(ctx, runenv, tmConfig, client, aggregator)
 
 	nodeKey, err := tmp2p.LoadOrGenNodeKey(tmConfig.NodeKeyFile())
@@ -249,7 +251,9 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		client.Subscribe(ctx, multiaddr, tch)
 		t := <-tch
 		//tmConfig.P2P.PersistentPeers = t.Addr + "@" + t.Ip + ":" + t.Port
-		//tmConfig.P2P.Seeds = t.Addr + "@" + t.Ip + ":" + t.Port
+		if cfg.P2p {
+			tmConfig.P2P.Seeds = t.Addr + "@" + t.Ip + ":" + t.Port
+		}
 
 		runenv.RecordMessage("Sequencer multiaddr %s", t.Ip)
 		nodeKey, err := tmp2p.LoadNodeKey(tmConfig.NodeKeyFile())
@@ -264,9 +268,11 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		host, err = libp2p.New(libp2p.Identity(signingKey))
 		//config.DAGrpc.Host = t.Ip
 		//config.DAGrpc.Port = 7980
-		config.DAConfig = "{\"host\": \"" + t.Ip + "\", \"port\": 7980}"
-		config.SettlementConfig.SLGrpc.Host = t.Ip
-		config.SettlementConfig.SLGrpc.Port = 7981
+		if cfg.Grpc {
+			config.DAConfig = "{\"host\": \"" + t.Ip + "\", \"port\": 7980}"
+			config.SettlementConfig.SLGrpc.Host = t.Ip
+			config.SettlementConfig.SLGrpc.Port = 7981
+		}
 	} else {
 		nodeKey, err := tmp2p.LoadNodeKey(tmConfig.NodeKeyFile())
 		if err != nil {
@@ -282,12 +288,14 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 			return nil, err
 		}
 		client.Publish(ctx, multiaddr, &Multiaddr{host.ID().String(), ip.String(), "26656"})
-		config.DAConfig = "{\"host\": \"" + ip.String() + "\", \"port\": 7980}"
-		//config.DAGrpc.Port = 7980
-		config.SettlementConfig.SLGrpc.Host = ip.String()
-		config.SettlementConfig.SLGrpc.Port = 7981
-		go runGrpcDaServer(ip.String(), 7980)
-		go runGrpcSlServer(ip.String(), 7981)
+		if cfg.Grpc {
+			config.DAConfig = "{\"host\": \"" + ip.String() + "\", \"port\": 7980}"
+			//config.DAGrpc.Port = 7980
+			config.SettlementConfig.SLGrpc.Host = ip.String()
+			config.SettlementConfig.SLGrpc.Port = 7981
+			go runGrpcDaServer(ip.String(), 7980)
+			go runGrpcSlServer(ip.String(), 7981)
+		}
 	}
 
 	err = conv.GetNodeConfig(config, tmConfig)
