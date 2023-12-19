@@ -56,7 +56,7 @@ instances = { min = 1, max = 500, default = 100 }
   node_failing = { type = "int", desc = "if enabled, a random node fails for a certain time ", default=0 }
   t_node_failure = { type = "duration", desc = "Time a node is down to test node failures.", default="10s" }
   ## node config
-  grpc = { type = "bool", desc = "if true, batch and settlement layer is configured as grpc", default=false }
+  grpc = { type = "bool", desc = "if true, batch and settlement layer is configured as grpc", default=true }
   p2p = { type = "bool", desc = "if true, gossiping blocks is enabled", default=true }
   publisher = { type = "bool", desc = "if true, this instance should publish to subscribed topics instead of lurking", default=false }
   flood_publishing = { type = "bool", desc = "if true, nodes will flood when publishing their own messages. only applies to hardening branch", default=false }
