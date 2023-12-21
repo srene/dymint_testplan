@@ -90,7 +90,7 @@ func sendingTransactions(ctx context.Context, runenv *runtime.RunEnv, warmup tim
 	cfg.Connections = 1
 	cfg.Count = -1
 	cfg.BroadcastTxMethod = "sync"
-	cfg.Rate = 400
+	cfg.Rate = 1
 	cfg.SendPeriod = 0.2
 	cfg.Size = 500
 	cfg.Time = int(runTime.Seconds())
@@ -182,39 +182,71 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 		runenv.RecordMessage("Enabling failure for node %d !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!", seq)
 	}
 
-	cfg := NodeConfig{
-		Publisher:               aggregator,
-		FloodPublishing:         false,
-		P2p:                     params.p2p,
-		Grpc:                    params.grpc,
-		OverlayParams:           params.overlayParams,
-		FailureDuration:         params.node_failure_time,
-		Failure:                 nodeFailing,
-		Tracer:                  tracer,
-		GossipTracer:            gossipTracer,
-		Seq:                     seq,
-		Warmup:                  params.warmup,
-		Cooldown:                params.cooldown,
-		Heartbeat:               params.heartbeat,
-		ValidateQueueSize:       params.validateQueueSize,
-		OutboundQueueSize:       params.outboundQueueSize,
-		OpportunisticGraftTicks: params.opportunisticGraftTicks,
-	}
+	daAddr := tgsync.NewTopic("da_addr", &Multiaddr{})
+	slAddr := tgsync.NewTopic("sl_addr", &Multiaddr{})
 
-	dn, err := createDymintNode(ctx, runenv, seq, client, aggregator, ip, cfg)
-	if err != nil {
-		return err
-	}
+	errgrp, _ := errgroup.WithContext(ctx)
 
-	runenv.RecordMessage("Node started %d", dn.seq)
-	errgrp, ctx := errgroup.WithContext(ctx)
+	if int(seq) == runenv.TestInstanceCount {
+		client.Publish(ctx, slAddr, &Multiaddr{"", ip.String(), "7980"})
+		//errgrp, _ := errgroup.WithContext(ctx)
+		errgrp.Go(func() (err error) {
+			runGrpcSlServer(runTime, ip.String(), 7980)
+			return
+		})
+		//go runGrpcSlServer(runTime, ip.String(), 7981)
+		//go runGrpcDaServer(runTime, ip.String(), 7980)
+		//return errgrp.Wait()
+	} else if int(seq) == runenv.TestInstanceCount-1 {
+		client.Publish(ctx, daAddr, &Multiaddr{"", ip.String(), "7981"})
+		//errgrp, _ := errgroup.WithContext(ctx)
+		errgrp.Go(func() (err error) {
+			runGrpcDaServer(runTime, ip.String(), 7981)
+			return
+		})
+		//go runGrpcSlServer(runTime, ip.String(), 7981)
+		//go runGrpcDaServer(runTime, ip.String(), 7980)
+		//return errgrp.Wait()
+	} else {
+		sch := make(chan *Multiaddr)
+		client.Subscribe(ctx, slAddr, sch)
+		s := <-sch
+		dch := make(chan *Multiaddr)
+		client.Subscribe(ctx, daAddr, dch)
+		d := <-dch
+		cfg := NodeConfig{
+			Publisher:               aggregator,
+			FloodPublishing:         false,
+			P2p:                     params.p2p,
+			Grpc:                    params.grpc,
+			OverlayParams:           params.overlayParams,
+			FailureDuration:         params.node_failure_time,
+			Failure:                 nodeFailing,
+			Tracer:                  tracer,
+			GossipTracer:            gossipTracer,
+			Seq:                     seq,
+			Warmup:                  params.warmup,
+			Cooldown:                params.cooldown,
+			Heartbeat:               params.heartbeat,
+			ValidateQueueSize:       params.validateQueueSize,
+			OutboundQueueSize:       params.outboundQueueSize,
+			OpportunisticGraftTicks: params.opportunisticGraftTicks,
+		}
 
-	errgrp.Go(func() (err error) {
-		dn.Run(runTime+warmup, cfg)
-		return
-	})
-	if seq == 1 {
-		sendingTransactions(ctx, runenv, warmup, runTime, ip)
+		dn, err := createDymintNode(ctx, runenv, seq, client, aggregator, ip, cfg, d.Ip, s.Ip, d.Port, s.Port)
+		if err != nil {
+			return err
+		}
+
+		runenv.RecordMessage("Node started %d", dn.seq)
+
+		errgrp.Go(func() (err error) {
+			dn.Run(runTime+warmup, cfg)
+			return
+		})
+		if seq == 1 {
+			sendingTransactions(ctx, runenv, warmup, runTime, ip)
+		}
 	}
 	return errgrp.Wait()
 

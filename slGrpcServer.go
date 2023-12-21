@@ -4,12 +4,13 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/dymensionxyz/dymint/settlement"
 	"github.com/dymensionxyz/dymint/settlement/grpc/mockserv"
 )
 
-func runGrpcSlServer(ip string, port int) {
+func runGrpcSlServer(runtime time.Duration, ip string, port int) {
 	conf := settlement.GrpcConfig{
 		Host: ip,
 		Port: port,

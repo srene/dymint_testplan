@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/dymensionxyz/dymint/config"
@@ -184,7 +185,7 @@ func initFilesWithConfig(ctx context.Context, runenv *runtime.RunEnv, config *tc
 	return nil
 }
 
-func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, client *tgsync.DefaultClient, aggregator bool, ip net.IP, cfg NodeConfig) (*DymintNode, error) {
+func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, client *tgsync.DefaultClient, aggregator bool, ip net.IP, cfg NodeConfig, daip string, slip string, daport string, slport string) (*DymintNode, error) {
 
 	//opts, err := pubsubOptions(cfg)
 	// Set the heartbeat initial delay and interval
@@ -201,6 +202,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 	if cfg.Grpc {
 		config.DALayer = "grpc"
 		config.SettlementLayer = "grpc"
+
 	} else {
 		config.DALayer = "mock"
 		config.SettlementLayer = "mock"
@@ -276,9 +278,10 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		//config.DAGrpc.Host = t.Ip
 		//config.DAGrpc.Port = 7980
 		if cfg.Grpc {
-			config.DAConfig = "{\"host\": \"" + t.Ip + "\", \"port\": 7980}"
-			config.SettlementConfig.SLGrpc.Host = t.Ip
-			config.SettlementConfig.SLGrpc.Port = 7981
+			port, _ := strconv.Atoi(slport)
+			config.DAConfig = "{\"host\": \"" + daip + "\", \"port\": " + daport + "}"
+			config.SettlementConfig.SLGrpc.Host = slip
+			config.SettlementConfig.SLGrpc.Port = port
 		}
 	} else {
 		nodeKey, err := tmp2p.LoadNodeKey(tmConfig.NodeKeyFile())
@@ -296,12 +299,13 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		}
 		client.Publish(ctx, multiaddr, &Multiaddr{host.ID().String(), ip.String(), "26656"})
 		if cfg.Grpc {
-			config.DAConfig = "{\"host\": \"" + ip.String() + "\", \"port\": 7980}"
+
+			config.DAConfig = "{\"host\": \"" + daip + "\", \"port\": " + daport + "}"
 			//config.DAGrpc.Port = 7980
-			config.SettlementConfig.SLGrpc.Host = ip.String()
-			config.SettlementConfig.SLGrpc.Port = 7981
-			go runGrpcDaServer(ip.String(), 7980)
-			go runGrpcSlServer(ip.String(), 7981)
+			port, _ := strconv.Atoi(slport)
+			config.SettlementConfig.SLGrpc.Host = slip
+			config.SettlementConfig.SLGrpc.Port = port
+
 		}
 	}
 
@@ -313,7 +317,6 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 
 	logger := log.NewTMLogger(log.NewSyncWriter(os.Stdout))
 
-	runenv.RecordMessage("Tracer %s", cfg.Tracer)
 	opts := []p2p.Option{
 		p2p.WithEventTracer(cfg.Tracer),
 		p2p.WithGossipEventTracer(cfg.GossipTracer),
@@ -385,6 +388,36 @@ func (dn *DymintNode) Run(runtime time.Duration, cfg NodeConfig) error {
 		dn.node.Stop()
 	}()
 	dn.node.Start()
+
+	if dn.cfg.Failure {
+		go func() {
+			select {
+			case <-time.After(dn.cfg.Warmup):
+			case <-dn.ctx.Done():
+				return
+			}
+			dn.runenv.RecordMessage("Node stopped !!!!!!!!!!!!!!!")
+			dn.node.P2P.Close()
+			for _, peer := range dn.h.Network().Peers() {
+				dn.runenv.RecordMessage("Disconnecting from %s", peer)
+				dn.h.Network().ClosePeer(peer)
+			}
+
+			select {
+			case <-time.After(dn.cfg.FailureDuration):
+			case <-dn.ctx.Done():
+				return
+			}
+
+			//err2 := dn.discovery.ConnectTopology(dn.ctx, 0)
+
+			err2 := dn.node.P2P.Start(dn.ctx)
+			dn.runenv.RecordMessage("Node up again !!!!!!!!!!!!!!!")
+			if err2 != nil {
+				dn.runenv.RecordMessage("Error connecting to topology peer: %s", err2)
+			}
+		}()
+	}
 
 	select {
 	case <-time.After(runtime):
