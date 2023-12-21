@@ -90,7 +90,7 @@ func sendingTransactions(ctx context.Context, runenv *runtime.RunEnv, warmup tim
 	cfg.Connections = 1
 	cfg.Count = -1
 	cfg.BroadcastTxMethod = "sync"
-	cfg.Rate = 100
+	cfg.Rate = 400
 	cfg.SendPeriod = 0.2
 	cfg.Size = 500
 	cfg.Time = int(runTime.Seconds())
@@ -210,7 +210,7 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 	errgrp, ctx := errgroup.WithContext(ctx)
 
 	errgrp.Go(func() (err error) {
-		dn.Run(runTime, cfg)
+		dn.Run(runTime+warmup, cfg)
 		return
 	})
 	if seq == 1 {
