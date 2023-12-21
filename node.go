@@ -190,8 +190,8 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 	// Set the heartbeat initial delay and interval
 	pubsub.GossipSubHeartbeatInitialDelay = cfg.Heartbeat.InitialDelay
 	pubsub.GossipSubHeartbeatInterval = cfg.Heartbeat.Interval
-	pubsub.GossipSubHistoryLength = 100
-	pubsub.GossipSubHistoryGossip = 50
+	pubsub.GossipSubHistoryLength = 10000
+	pubsub.GossipSubHistoryGossip = 5000
 
 	tmConfig := tcfg.DefaultConfig()
 	config := &config.DefaultNodeConfig
@@ -234,12 +234,19 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 	//config.BlockBatchMaxSizeBytes = 50000000
 
 	tmConfig.ProxyApp = "kvstore"
-	tmConfig.LogLevel = "debug"
+	tmConfig.LogLevel = "info"
 	config.Aggregator = aggregator
 	config.BatchSubmitMaxTime = time.Second * 10
+	config.BlockBatchSize = 60000000
 	tmConfig.P2P.ListenAddress = "tcp://" + ip.String() + ":26656"
 	tmConfig.RPC.ListenAddress = "tcp://" + ip.String() + ":26657"
 	runenv.RecordMessage("Listen address %s", tmConfig.P2P.ListenAddress)
+
+	config.BlockBatchMaxSizeBytes = 60000000
+	config.BlockTime = 200 * time.Millisecond
+	tmConfig.Mempool.CacheSize = 60000000
+	tmConfig.Mempool.MaxBatchBytes = 60000000
+	tmConfig.Mempool.MaxTxsBytes = 60000000
 
 	multiaddr := tgsync.NewTopic("addr", &Multiaddr{})
 

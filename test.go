@@ -82,19 +82,19 @@ func setupNetwork(ctx context.Context, runenv *runtime.RunEnv, netclient *networ
 	return config, nil
 }
 
-func sendingTransactions(runenv *runtime.RunEnv, runTime time.Duration, ip net.IP) {
+func sendingTransactions(ctx context.Context, runenv *runtime.RunEnv, warmup time.Duration, runTime time.Duration, ip net.IP) {
 
 	var cfg loadtest.Config
 	cfg.ClientFactory = "kvstore"
 	cfg.Endpoints = []string{"ws://" + ip.String() + ":26657/websocket"}
 	cfg.Connections = 1
 	cfg.Count = -1
-	cfg.BroadcastTxMethod = "async"
-	cfg.Rate = 400
+	cfg.BroadcastTxMethod = "sync"
+	cfg.Rate = 100
 	cfg.SendPeriod = 0.2
-	cfg.Size = 250
+	cfg.Size = 500
 	cfg.Time = int(runTime.Seconds())
-	cfg.EndpointSelectMethod = "supplied"
+	cfg.EndpointSelectMethod = "any"
 	runenv.RecordMessage("Connecting to remote endpoints ", cfg.Endpoints, cfg.MaxTxsPerEndpoint(), cfg.Rate, cfg.Time, cfg.Count)
 
 	if err := cfg.Validate(); err != nil {
@@ -105,6 +105,12 @@ func sendingTransactions(runenv *runtime.RunEnv, runTime time.Duration, ip net.I
 	//tg.SetLogger(logger)
 	if err := tg.AddAll(&cfg); err != nil {
 		runenv.RecordCrash("adding transactor error")
+		return
+	}
+
+	select {
+	case <-time.After(warmup):
+	case <-ctx.Done():
 		return
 	}
 	runenv.RecordMessage("Initiating load test %s", cfg.Endpoints)
@@ -208,7 +214,7 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 		return
 	})
 	if seq == 1 {
-		sendingTransactions(runenv, runTime, ip)
+		sendingTransactions(ctx, runenv, warmup, runTime, ip)
 	}
 	return errgrp.Wait()
 
