@@ -72,8 +72,8 @@ func setupNetwork(ctx context.Context, runenv *runtime.RunEnv, netclient *networ
 	}
 
 	// random delay to avoid overloading weave (we hope)
-	delay := time.Duration(rand.Intn(1000)) * time.Millisecond
-	<-time.After(delay)
+	//delay := time.Duration(rand.Intn(1000)) * time.Millisecond
+	//<-time.After(delay)
 	err = netclient.ConfigureNetwork(ctx, config)
 	if err != nil {
 		return nil, err
@@ -90,9 +90,9 @@ func sendingTransactions(ctx context.Context, runenv *runtime.RunEnv, warmup tim
 	cfg.Connections = 1
 	cfg.Count = -1
 	cfg.BroadcastTxMethod = "sync"
-	cfg.Rate = 1
-	cfg.SendPeriod = 1
-	cfg.Size = 100
+	cfg.Rate = 100
+	cfg.SendPeriod = 0.1
+	cfg.Size = 1000
 	cfg.Time = int(runTime.Seconds())
 	cfg.EndpointSelectMethod = "any"
 	runenv.RecordMessage("Connecting to remote endpoints ", cfg.Endpoints, cfg.MaxTxsPerEndpoint(), cfg.Rate, cfg.Time, cfg.Count)
@@ -146,8 +146,9 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 	runenv.RecordMessage("my sequence ID: %d ", seq)
 
 	bw := params.netParams.bandwidthMB
-	if int(seq) == runenv.TestInstanceCount-1 || int(seq) == runenv.TestInstanceCount {
-		bw = bw * 100
+	//if int(seq) == runenv.TestInstanceCount-1 || int(seq) == runenv.TestInstanceCount {
+	if int(seq) != 2 {
+		bw = bw * 1000
 	}
 	_, err = setupNetwork(ctx, runenv, netclient, params.netParams.latency, params.netParams.latencyMax, bw)
 	if err != nil {
