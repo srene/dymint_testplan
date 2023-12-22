@@ -91,8 +91,8 @@ func sendingTransactions(ctx context.Context, runenv *runtime.RunEnv, warmup tim
 	cfg.Count = -1
 	cfg.BroadcastTxMethod = "sync"
 	cfg.Rate = 1
-	cfg.SendPeriod = 0.2
-	cfg.Size = 500
+	cfg.SendPeriod = 1
+	cfg.Size = 100
 	cfg.Time = int(runTime.Seconds())
 	cfg.EndpointSelectMethod = "any"
 	runenv.RecordMessage("Connecting to remote endpoints ", cfg.Endpoints, cfg.MaxTxsPerEndpoint(), cfg.Rate, cfg.Time, cfg.Count)
@@ -141,7 +141,15 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 
 	netclient := network.NewClient(client, runenv)
 
-	_, err := setupNetwork(ctx, runenv, netclient, params.netParams.latency, params.netParams.latencyMax, params.netParams.bandwidthMB)
+	test := tgsync.NewTopic("test", &IP{})
+	seq, err := client.Publish(ctx, test, &IP{})
+	runenv.RecordMessage("my sequence ID: %d ", seq)
+
+	bw := params.netParams.bandwidthMB
+	if int(seq) == runenv.TestInstanceCount-1 || int(seq) == runenv.TestInstanceCount {
+		bw = bw * 100
+	}
+	_, err = setupNetwork(ctx, runenv, netclient, params.netParams.latency, params.netParams.latencyMax, bw)
 	if err != nil {
 		return fmt.Errorf("Failed to set up network: %w", err)
 	}
@@ -154,7 +162,8 @@ func test(runenv *runtime.RunEnv, initCtx *run.InitContext) error {
 	// Get sequence number within a node type (eg honest-1, honest-2, etc)
 	// signal entry in the 'enrolled' state, and obtain a sequence number.
 	ip, _ := netclient.GetDataNetworkIP()
-	seq, err := client.Publish(ctx, peers, &IP{ip})
+	_, err = client.Publish(ctx, peers, &IP{ip})
+	//runenv.RecordMessage("my sequence ID: %d ", seq)
 
 	var aggregator bool
 	if seq == 1 {

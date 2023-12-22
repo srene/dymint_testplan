@@ -4,11 +4,13 @@ go 1.20
 
 replace (
 	github.com/centrifuge/go-substrate-rpc-client/v4 => github.com/availproject/go-substrate-rpc-client/v4 v4.0.12-avail-1.4.0-rc1-5e286e3
-	github.com/dymensionxyz/dymint => github.com/srene/dymint_test v0.0.0-20231221104330-5d0ff14823af
+	github.com/dymensionxyz/dymint => github.com/srene/dymint_test v0.0.0-20231222112202-4f2d7b65a34d
 	github.com/gogo/protobuf => github.com/regen-network/protobuf v1.3.2-alpha.regen.4
 	github.com/gorilla/rpc => github.com/dymensionxyz/rpc v1.3.1
+	github.com/libp2p/go-libp2p-pubsub => github.com/dymensionxyz/go-libp2p-pubsub v0.0.0-20231219183151-4504d4995913
 	github.com/tendermint/tendermint => github.com/cometbft/cometbft v0.34.28
 	sourcegraph.com/sourcegraph/go-diff v0.5.0 => github.com/sourcegraph/go-diff v0.5.1
+
 )
 
 require (

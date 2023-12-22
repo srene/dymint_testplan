@@ -238,13 +238,13 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 	tmConfig.ProxyApp = "kvstore"
 	tmConfig.LogLevel = "info"
 	config.Aggregator = aggregator
-	config.BatchSubmitMaxTime = time.Second * 10
-	config.BlockBatchSize = 60000000
+	config.BatchSubmitMaxTime = time.Millisecond * 5000
+	config.BlockBatchSize = 50
 	tmConfig.P2P.ListenAddress = "tcp://" + ip.String() + ":26656"
 	tmConfig.RPC.ListenAddress = "tcp://" + ip.String() + ":26657"
 	runenv.RecordMessage("Listen address %s", tmConfig.P2P.ListenAddress)
 
-	config.BlockBatchMaxSizeBytes = 60000000
+	config.BlockBatchMaxSizeBytes = 90000000
 	config.BlockTime = 200 * time.Millisecond
 	tmConfig.Mempool.CacheSize = 60000000
 	tmConfig.Mempool.MaxBatchBytes = 60000000
@@ -261,7 +261,8 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 		t := <-tch
 		//tmConfig.P2P.PersistentPeers = t.Addr + "@" + t.Ip + ":" + t.Port
 		if cfg.P2p {
-			tmConfig.P2P.Seeds = t.Addr + "@" + t.Ip + ":" + t.Port
+			tmConfig.P2P.Seeds = t.Addr + "@" + t.Ip + ":" +
+				t.Port
 		}
 
 		runenv.RecordMessage("Sequencer multiaddr %s", t.Ip)
