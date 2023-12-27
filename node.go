@@ -238,7 +238,7 @@ func createDymintNode(ctx context.Context, runenv *runtime.RunEnv, seq int64, cl
 	tmConfig.ProxyApp = "kvstore"
 	tmConfig.LogLevel = "info"
 	config.Aggregator = aggregator
-	config.BatchSubmitMaxTime = time.Millisecond * 5000
+	config.BatchSubmitMaxTime = time.Second * 10
 	config.BlockBatchSize = 50
 	tmConfig.P2P.ListenAddress = "tcp://" + ip.String() + ":26656"
 	tmConfig.RPC.ListenAddress = "tcp://" + ip.String() + ":26657"
